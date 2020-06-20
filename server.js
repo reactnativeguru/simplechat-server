@@ -1,37 +1,29 @@
 const io = require("socket.io")();
 const port = 3001;
 
-let currentUserId = 2
-const userIds = {}
-let currentMessageId = 1
+const messageHandler = require('./handlers/message.handlers')
 
-const createMessage = (userId, messagText) => {
-  return {
-    _id: currentMessageId++,
-    text: 'Hello developer',
-    createdAt: new Date(Date.UTC(2016, 7, 30, 17, 20, 0)),
-    user: {
-      _id: userIds,
-      name: 'React Native Test',
-      avatar: 'https://www.placecage.com/50/50',
-    },
-  }
+let currentUserId = 2
+const users = {}
+
+const createUserAvatarUrl = () => {
+  const rand1 = Math.round(Math.random() * 200 + 100)
+  const rand2 = Math.round(Math.random() * 200 + 100)
+  return `https://www.placecage.com/${rand1}/${rand2}`
 }
 
 io.on("connect", (socket) => {
   console.log("user connected", socket.id);
-  userIds[socket.id] = currentUserId++
-  socket.on("message-sent", (messagText) => {
-    // send message to everyone including self
-    // io.emit("message-sent", messagText);
+  users[socket.id] = { userId: currentUserId++ }
 
-    const userId = userIds[socket.id]
-    const message = createMessage(userId, messagText)
+  socket.on('join', username => {
+    users[socket.id].username = username;
+    users[socket.id].avatar = createUserAvatarUrl();
 
-    console.log(message)
-    // send message to everyone except self
-    socket.broadcast.emit("message-sent", message)
-  });
+    messageHandler.handleMessage(socket, users)
+
+  })
+
 });
 
 io.listen(port);
